@@ -1,13 +1,13 @@
 package org.camunda.community.benchmarks;
 
 import java.time.Instant;
-import java.util.Map;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.camunda.community.benchmarks.config.BenchmarkConfiguration;
 import org.camunda.community.benchmarks.refactoring.RefactoredCommandWrapper;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.ApplicationListener;
+import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Component;
 
@@ -22,24 +22,29 @@ import io.camunda.zeebe.spring.client.exception.ZeebeBpmnError;
 import io.camunda.zeebe.spring.client.jobhandling.CommandWrapper;
 
 @Component
-public class JobWorker {
+public class JobWorker implements ApplicationListener<ContextRefreshedEvent> {
     private static final Logger LOG = LogManager.getLogger(JobWorker.class);
 
-    @Autowired
-    private BenchmarkConfiguration config;
+    private final BenchmarkConfiguration config;
 
-    @Autowired
-    private BenchmarkCompleteJobExceptionHandlingStrategy exceptionHandlingStrategy;
+    private final BenchmarkCompleteJobExceptionHandlingStrategy exceptionHandlingStrategy;
 
     // TODO: Check if we can/need to check if the scheduler can catch up with all its work (or if it is overwhelmed)
-    @Autowired
-    private TaskScheduler scheduler;
+    private final TaskScheduler scheduler;
 
-    @Autowired
-    private ZeebeClient client;
+    private final ZeebeClient client;
 
-    @Autowired
-    private StatisticsCollector stats;
+    private final StatisticsCollector stats;
+
+    public JobWorker(BenchmarkConfiguration config,
+        BenchmarkCompleteJobExceptionHandlingStrategy exceptionHandlingStrategy,
+        @Qualifier("taskScheduler") TaskScheduler scheduler, ZeebeClient client, StatisticsCollector stats) {
+        this.config = config;
+        this.exceptionHandlingStrategy = exceptionHandlingStrategy;
+        this.scheduler = scheduler;
+        this.client = client;
+        this.stats = stats;
+    }
 
     private void registerWorker(String jobType) {
 
@@ -47,7 +52,7 @@ public class JobWorker {
 
         JobWorkerBuilderStep1.JobWorkerBuilderStep3 step3 = client.newWorker()
                 .jobType(jobType)
-                .handler(new SimpleDelayCompletionHandler(false))
+                .handler(new SimpleDelayCompletionHandler(true))
                 .name(jobType);
 
         if(fixedBackOffDelay > 0) {
@@ -101,6 +106,11 @@ public class JobWorker {
         registerWorker(taskType + "-" + config.getStarterId() + "-completed");
     }
 
+    @Override
+    public void onApplicationEvent(ContextRefreshedEvent event) {
+        startWorkers();
+    }
+
     public class SimpleDelayCompletionHandler implements JobHandler {
 
         private boolean markProcessInstanceCompleted;
@@ -118,13 +128,8 @@ public class JobWorker {
                     job.getDeadline(),
                     job.toString(),
                     exceptionHandlingStrategy);
-            Map<String, Object> variables = job.getVariablesAsMap();
-            Long delay = config.getTaskCompletionDelay();
-            if (variables.containsKey("delay")) {
-                delay = 0L + (Integer) variables.get("delay");
-                LOG.info("Worker " + job.getType() +" will complete in " +delay+ " MS");
-                
-            }
+            long delay = config.getTaskCompletionDelay();
+            LOG.debug("Worker {} will complete in {} MS", job.getType(), delay);
             // schedule the completion asynchronously with the configured delay
             scheduler.schedule(new Runnable() {
                 @Override

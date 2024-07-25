@@ -3,7 +3,8 @@ package org.camunda.community.benchmarks;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.camunda.community.benchmarks.config.BenchmarkConfiguration;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationListener;
+import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -15,15 +16,20 @@ import java.io.IOException;
 import java.io.InputStream;
 
 @Component
-public class ProcessDeployer {
+public class ProcessDeployer implements ApplicationListener<ContextRefreshedEvent> {
 
     private static final Logger LOG = LogManager.getLogger(ProcessDeployer.class);
 
-    @Autowired
-    private ZeebeClient zeebeClient;
+    private final ZeebeClient zeebeClient;
 
-    @Autowired
-    private BenchmarkConfiguration config;
+    private final BenchmarkConfiguration config;
+
+    private volatile boolean alreadyDeployed = false;
+
+    public ProcessDeployer(ZeebeClient zeebeClient, BenchmarkConfiguration config) {
+        this.zeebeClient = zeebeClient;
+        this.config = config;
+    }
 
     // Can't do @PostContruct, as this is called before the client is ready
     public void autoDeploy() {
@@ -67,5 +73,14 @@ public class ProcessDeployer {
         }
 
         return new ByteArrayInputStream(fileContent.getBytes());
+    }
+
+    @Override
+    public void onApplicationEvent(ContextRefreshedEvent event) {
+        // Prevents multiple deployments in case of multiple context refreshes
+        if (!alreadyDeployed) {
+            autoDeploy();
+            alreadyDeployed = true;
+        }
     }
 }

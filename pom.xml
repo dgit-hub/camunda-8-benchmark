@@ -23,7 +23,7 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <license.header>com/mycila/maven/plugin/license/templates/APACHE-2.txt</license.header>
-    <version.java>11</version.java>
+    <version.java>17</version.java>
   </properties>
 
   <dependencies>
@@ -36,7 +36,7 @@
     <dependency>
       <groupId>io.camunda.spring</groupId>
       <artifactId>spring-boot-starter-camunda</artifactId>
-      <version>8.4.0</version>
+      <version>8.5.1</version>
     </dependency>
 
     <dependency>
@@ -60,7 +60,7 @@
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-actuator</artifactId>
-      <version>3.2.2</version>
+      <version>3.3.1</version>
     </dependency>
     <dependency>
       <groupId>io.micrometer</groupId>
@@ -70,7 +70,7 @@
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-webflux</artifactId>
-      <version>3.2.2</version>
+      <version>3.3.1</version>
     </dependency>
 	<dependency>
 	    <groupId>commons-lang</groupId>
@@ -108,6 +108,7 @@
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
+        <version>3.3.0</version>
         <configuration>
           <mainClass>org.camunda.community.benchmarks.BenchmarkApplication</mainClass>
         </configuration>
@@ -115,7 +116,7 @@
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
-        <version>3.2.2</version>
+        <version>3.3.1</version>
         <executions>
           <execution>
             <goals>
@@ -123,7 +124,19 @@
             </goals>
           </execution>
         </executions>
+        <configuration>
+          <jvmArguments>
+            -Dlogging.level.io.camunda.zeebe.client.impl.ZeebeCallCredentials=ERROR -XX:MaxDirectMemorySize=1g -XX:+UseG1GC -Xmx1g
+          </jvmArguments>
+        </configuration>
       </plugin>
     </plugins>
   </build>
+  <repositories>
+    <repository>
+      <id>maven_central</id>
+      <name>Maven Central</name>
+      <url>https://repo.maven.apache.org/maven2/</url>
+    </repository>
+  </repositories>
 </project>
