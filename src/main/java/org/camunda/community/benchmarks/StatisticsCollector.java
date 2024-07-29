@@ -1,11 +1,9 @@
 package org.camunda.community.benchmarks;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Instant;
-import java.util.Date;
 import java.util.concurrent.TimeUnit;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 import com.codahale.metrics.Meter;
@@ -17,13 +15,10 @@ import jakarta.annotation.PostConstruct;
 @Component
 public class StatisticsCollector {
 
-    private Date startTime = new Date();
-
     // Leveraging Dropwizard here to do rate calculation within the app
-    private com.codahale.metrics.MetricRegistry dropwizardMetricRegistry = new com.codahale.metrics.MetricRegistry();
+    private final com.codahale.metrics.MetricRegistry dropwizardMetricRegistry = new com.codahale.metrics.MetricRegistry();
     // But also the more modern Micrometer library, which can be exported to prometheus easily (using Spring Actuator)
-    @Autowired
-    private io.micrometer.core.instrument.MeterRegistry micrometerMetricRegistry;
+    private final io.micrometer.core.instrument.MeterRegistry micrometerMetricRegistry;
 
     private long lastPrintStartedProcessInstances = 0;
     private long lastPrintCompletedProcessInstances = 0;
@@ -31,6 +26,10 @@ public class StatisticsCollector {
     private long lastPrintStartedProcessInstancesBackpressure = 0;
 
     private long piPerSecondGoal;
+
+    public StatisticsCollector(MeterRegistry micrometerMetricRegistry) {
+        this.micrometerMetricRegistry = micrometerMetricRegistry;
+    }
 
     @PostConstruct
     public void init() {
@@ -40,7 +39,8 @@ public class StatisticsCollector {
                 .register(micrometerMetricRegistry);
     }
 
-    @Scheduled(fixedRate = 60*1000)
+    @Async
+    //@Scheduled(fixedRate = 60*1000)
     public void printStatus() {
         System.out.println("------------------- " + Instant.now() + " Current goal (PI/s): " + piPerSecondGoal);
 

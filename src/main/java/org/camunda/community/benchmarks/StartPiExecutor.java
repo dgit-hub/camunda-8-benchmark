@@ -11,7 +11,6 @@ import java.util.UUID;
 
 import org.camunda.community.benchmarks.config.BenchmarkConfiguration;
 import org.camunda.community.benchmarks.refactoring.RefactoredCommandWrapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import io.camunda.zeebe.client.ZeebeClient;
@@ -26,19 +25,24 @@ public class StartPiExecutor {
     public static final String BENCHMARK_START_DATE_MILLIS = "benchmark_start_date_millis";
     private static final Object BENCHMARK_STARTER_ID = "benchmark_starter_id";
 
-    @Autowired
-    private BenchmarkConfiguration config;
+    private final BenchmarkConfiguration config;
 
-    @Autowired
-    private ZeebeClient client;
+    private final ZeebeClient client;
 
-    @Autowired
-    private BenchmarkStartPiExceptionHandlingStrategy exceptionHandlingStrategy;
+    private final BenchmarkStartPiExceptionHandlingStrategy exceptionHandlingStrategy;
 
-    @Autowired
-    private ZeebeClientConfiguration zeebeClientConfiguration;
+    private final ZeebeClientConfiguration zeebeClientConfiguration;
 
     private Map<String, Object> benchmarkPayload;
+
+    public StartPiExecutor(BenchmarkConfiguration config, ZeebeClient client,
+        BenchmarkStartPiExceptionHandlingStrategy exceptionHandlingStrategy,
+        ZeebeClientConfiguration zeebeClientConfiguration) {
+        this.config = config;
+        this.client = client;
+        this.exceptionHandlingStrategy = exceptionHandlingStrategy;
+        this.zeebeClientConfiguration = zeebeClientConfiguration;
+    }
 
     @PostConstruct
     public void init() throws IOException {

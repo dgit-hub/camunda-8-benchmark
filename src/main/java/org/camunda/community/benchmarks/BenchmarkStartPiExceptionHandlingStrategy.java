@@ -6,7 +6,6 @@ import io.camunda.zeebe.spring.client.jobhandling.DefaultCommandExceptionHandlin
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.ScheduledExecutorService;
@@ -14,11 +13,12 @@ import java.util.concurrent.ScheduledExecutorService;
 @Component
 public class BenchmarkStartPiExceptionHandlingStrategy extends DefaultCommandExceptionHandlingStrategy  {
 
-    @Autowired
-    private StatisticsCollector stats;
+    private final StatisticsCollector stats;
 
-    public BenchmarkStartPiExceptionHandlingStrategy(@Autowired BackoffSupplier backoffSupplier, @Autowired ScheduledExecutorService scheduledExecutorService) {
+    public BenchmarkStartPiExceptionHandlingStrategy(@Autowired BackoffSupplier backoffSupplier,
+        @Autowired ScheduledExecutorService scheduledExecutorService, StatisticsCollector stats) {
         super(backoffSupplier, scheduledExecutorService);
+        this.stats = stats;
     }
 
     public void handleCommandError(CommandWrapper command, Throwable throwable) {

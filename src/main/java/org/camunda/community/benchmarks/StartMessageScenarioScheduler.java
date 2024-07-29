@@ -15,6 +15,7 @@ import org.camunda.community.benchmarks.model.MessagesScenario;
 import org.camunda.community.benchmarks.utils.JsonUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -47,7 +48,7 @@ public class StartMessageScenarioScheduler {
   
   public StartMessageScenarioScheduler(ZeebeClient client, 
       BenchmarkConfiguration config,
-      TaskScheduler taskScheduler) {
+      @Qualifier("taskScheduler") TaskScheduler taskScheduler) {
     this.client = client;
     this.config = config;
     this.taskScheduler = taskScheduler;

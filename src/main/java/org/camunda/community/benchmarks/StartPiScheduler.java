@@ -5,7 +5,6 @@ import java.time.Instant;
 import org.camunda.community.benchmarks.config.BenchmarkConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -19,14 +18,11 @@ public class StartPiScheduler {
 
     private static final Logger LOG = LoggerFactory.getLogger(StartPiScheduler.class);
 
-    @Autowired
-    private BenchmarkConfiguration config;
+    private final BenchmarkConfiguration config;
 
-    @Autowired
-    private StatisticsCollector stats;
+    private final StatisticsCollector stats;
 
-    @Autowired
-    private StartPiExecutor executor;
+    private final StartPiExecutor executor;
 
     private long startTimeInMillis = System.currentTimeMillis();
     private long piStarted = 0;
@@ -35,6 +31,12 @@ public class StartPiScheduler {
 
     private long batchSize = 1;
     private long howOften = 1; // every 1, 2 or 3rd row
+
+    public StartPiScheduler(BenchmarkConfiguration config, StatisticsCollector stats, StartPiExecutor executor) {
+        this.config = config;
+        this.stats = stats;
+        this.executor = executor;
+    }
 
     @PostConstruct
     public void init() {
@@ -105,7 +107,7 @@ public class StartPiScheduler {
     }
 
     @Async
-    private void startProcessInstances(long batchSize) {
+    public void startProcessInstances(long batchSize) {
         for (int i = 0; i < batchSize; i++) {
             executor.startProcessInstance();
             stats.incStartedProcessInstances();
@@ -189,7 +191,7 @@ public class StartPiScheduler {
         // Handle "almost no backressure" as special case with small numbers
         if (stats.getBackpressureOnStartPiMeter().getOneMinuteRate() < 1) {
             // increase it by bigger junk (10% of goal)
-            long rate = Math.round(Math.ceil(config.getStartPiPerSecond()/10));
+            long rate = Math.round(Math.ceil((double) config.getStartPiPerSecond() /10));
             LOG.info("Backpressure dropped, increasing start rate by " + rate );
             adjustStartRateBy( rate );
         }  else {
